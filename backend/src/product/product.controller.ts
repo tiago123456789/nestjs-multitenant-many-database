@@ -4,7 +4,6 @@ import {
   Get,
   Post,
   Req,
-  UseInterceptors,
 } from '@nestjs/common';
 import RequestWithTenantId from 'src/common/contracts/request-with-tenantId.contract';
 import { ProductDto } from './product.dto';

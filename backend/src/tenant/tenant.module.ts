@@ -1,4 +1,4 @@
-import { CacheModule, Module, Scope } from '@nestjs/common';
+import { CacheModule, MiddlewareConsumer, Module, NestModule, Scope } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TenantController } from './tenant.controller';
 import { TenantService } from './tenant.service';
@@ -7,11 +7,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CONNECTION } from 'src/common/types/tenant';
 import RequestWithTenantId from 'src/common/contracts/request-with-tenantId.contract';
-import { getTenantConnection } from './tenant.utils';
 import { REQUEST } from '@nestjs/core';
 import { ExecuteMigrationsCommand } from './commands/execute-migrations.command';
 import { ExecuteSeedCommand } from './commands/execute-seeds.command';
 import { ExecuteMigrationsAllTenantsCommand } from './commands/execute-migrations-all-tenants.command';
+import { TenantMiddleware } from "./tenant.middleware"
+import { getConnection } from 'typeorm'
 
 const cacheConfig = {
   store: 'memory',
@@ -23,7 +24,7 @@ const tenantConfigProvider = {
   inject: [REQUEST],
   useFactory: (request: RequestWithTenantId) => {
     if (request.tenantId) {
-      return getTenantConnection(request.tenantId)
+      return getConnection(request.tenantId);
     }
 
     return null;
@@ -57,4 +58,10 @@ const tenantConfigProvider = {
     tenantConfigProvider
   ],
 })
-export class TenantModule { }
+export class TenantModule implements NestModule {
+    configure(consumer: MiddlewareConsumer) {
+      consumer
+        .apply(TenantMiddleware)
+        .forRoutes("/products", "/admin/products");
+    }
+}

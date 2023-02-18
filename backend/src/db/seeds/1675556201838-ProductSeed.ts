@@ -4,10 +4,6 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class ProductSeed1675556201838 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const tenant = new Tenant();
-    tenant.setName('test');
-    await queryRunner.manager.insert(Tenant, tenant);
-
     const product = new Product();
     product.setName('Smart phone testeadfa asdfasd');
     product.setPrice(1000);
@@ -19,6 +15,5 @@ export class ProductSeed1675556201838 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.manager.delete(Product, {});
-    await queryRunner.manager.delete(Tenant, {});
   }
 }

@@ -1,16 +1,15 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Tenant } from './tenant.entity';
-import { Repository, EntityManager } from 'typeorm';
+import { Repository } from 'typeorm';
 import { TenantDto } from './dtos/tenant.dto';
 import { CredentialDto } from './dtos/credential.dto';
 import { JwtService } from '@nestjs/jwt';
-import { getTenantConnection, getTenantName } from './tenant.utils';
+import { getTenantName } from './tenant.utils';
 
 @Injectable()
 export class TenantService {
   constructor(
-    @InjectEntityManager() private entityManager: EntityManager,
     @InjectRepository(Tenant) private repository: Repository<Tenant>,
     private readonly jwtService: JwtService,
   ) {}
@@ -20,7 +19,7 @@ export class TenantService {
   }
 
   async authenticate(credentialDto: CredentialDto): Promise<string> {
-    const tenantName: string = getTenantName(credentialDto.name)
+    const tenantName: string = credentialDto.name
 
     const tenant: Tenant = await this.getByName(tenantName);
     if (!tenant) {
@@ -28,11 +27,12 @@ export class TenantService {
     }
 
     return this.jwtService.sign({
-      tenantId: credentialDto.name,
+      tenantId: tenant.getName(),
     }, { secret: process.env.JWT_SECRET });
   }
 
   async getByName(name): Promise<Tenant> {
+    name = getTenantName(name)
     const tenant = await this.repository.find({ where: { name } });
     return tenant[0];
   }
@@ -43,11 +43,9 @@ export class TenantService {
 
   async create(tenantDto: TenantDto): Promise<Tenant> {
     const tenant = new Tenant();
-    tenant.setName(`tenant_${tenantDto.name}`);
+    tenant.setName(getTenantName(tenantDto.name));
+    tenant.setHost(tenantDto.host);
     await this.repository.insert(tenant);
-    await this.entityManager.query(`CREATE SCHEMA IF NOT EXISTS "${tenant.getName()}"`)
-    const connection = await getTenantConnection(tenantDto.name)
-    connection.runMigrations()
     return tenant;
   }
 }

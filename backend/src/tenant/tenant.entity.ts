@@ -8,6 +8,9 @@ export class Tenant {
   @Column()
   name: string;
 
+  @Column({ nullable: true })
+  host: string;
+
   getId() {
     return this.id;
   }
@@ -22,5 +25,13 @@ export class Tenant {
 
   setName(name) {
     this.name = name;
+  }
+
+  getHost() {
+    return this.host;
+  }
+
+  setHost(host) {
+    this.host = host;
   }
 }

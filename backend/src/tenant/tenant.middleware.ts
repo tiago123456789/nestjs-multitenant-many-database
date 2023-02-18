@@ -1,35 +1,56 @@
+import { BadRequestException, HttpException, Injectable, NestMiddleware } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
 import { NextFunction, Response } from "express";
-import * as jwt from "jsonwebtoken"
 import RequestWithTenantId from "src/common/contracts/request-with-tenantId.contract";
+import { TenantService } from "./tenant.service";
+import { getTenantConnection, getTenantName } from "./tenant.utils"
 
-export function tenantMiddleware(
-    request: RequestWithTenantId, response: Response, next: NextFunction
-) {
-    const host = request.headers["origin"] || request.headers["host"];
-    let accessToken = request.get('Authorization');
 
-    const tenantId = host.split(".")[0];
-    request.tenantId = tenantId;
+@Injectable()
+export class TenantMiddleware implements NestMiddleware {
 
-    if (!accessToken && host) {
-        const tenantId = host.split(".")[0];
-        request.tenantId = tenantId;
+    constructor(
+        private readonly tenantService: TenantService,
+        private readonly jwtService: JwtService,
+    ) {
+    }
+
+    private async createConnectionByTenantId(tenantId: string) {
+        const tenant = await this.tenantService.getByName(tenantId);
+        if (!tenant) {
+            throw new HttpException("Tenant is invalid!", 400)
+        }
+
+        const connectionCreated = await getTenantConnection(tenant)
+        if (!connectionCreated) {
+            throw new BadRequestException(
+                'Database Connection Error',
+                'There is a Error with the Database!',
+            );
+        }
+
+    }
+
+    async use(req: RequestWithTenantId, res: Response, next: NextFunction) {
+        const host = req.headers["origin"] || req.headers["host"];
+        let accessToken = req.get('Authorization');
+        let tenantId = host 
+                        .replace("https://", "")
+                        .replace("http://", "")
+                        .split(".")[0];
+
+        if (accessToken) {
+            try {
+                accessToken = accessToken.replace('Bearer ', '');
+                const payload = this.jwtService.verify(accessToken);
+                tenantId = payload.tenantId;
+            } catch (error) {
+                return res.status(403).json({ message: 'You need informed accessToken valid' });
+            }
+        }
+
+        req.tenantId = getTenantName(tenantId);
+        await this.createConnectionByTenantId(tenantId)
         next();
-        return;
-    }
-
-    if (!host && !accessToken) {
-        return response.status(403).json({ message: 'You need informed accessToken' });
-    }
-
-    try {
-        accessToken = accessToken.replace('Bearer ', '');
-        const payload = jwt.verify(accessToken, process.env.JWT_SECRET);
-        // @ts-ignore
-        request.tenantId = payload.tenantId;
-        return next();
-    } catch (error) {
-        console.log(error)
-        return response.status(403).json({ message: 'You need informed accessToken valid' });
     }
 }

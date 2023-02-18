@@ -1,26 +1,43 @@
+import { InjectRepository } from "@nestjs/typeorm"
 import { CommandRunner, Command, Option } from "nest-commander"
-import { Connection } from "typeorm"
-import { getTenantConnection } from "../tenant.utils"
+import { Connection, Repository } from "typeorm"
+import { Tenant } from "../tenant.entity"
+import { getTenantConnection, getTenantName } from "../tenant.utils"
 
 interface TenantSeedsCommandOptions {
-    schema: string;
+    tenant: string;
 }
 
 @Command({ name: 'tenant-seeds', description: 'Execute seeds to the tenant' })
 export class ExecuteSeedCommand implements CommandRunner {
 
+    constructor(
+        @InjectRepository(Tenant) private repository: Repository<Tenant>,
+    ) {
+    }
+
     async run(
         passedParam: string[],
         options: TenantSeedsCommandOptions
     ): Promise<void> {
-        console.log(`>>>> Executing seeds to the schema ${options.schema}`)
-        const connection: Connection = await getTenantConnection(options.schema, true)
+        const tenant = await this.repository.findOne({ 
+            where: {
+                name: getTenantName(options.tenant)
+            }
+        })
+
+        if (!tenant) {
+            throw new Error("Tenant not exist")
+        }
+
+        console.log(`>>>> Executing migrations to the tenant ${options.tenant}`)
+        const connection: Connection = await getTenantConnection(tenant, true)
         await connection.runMigrations()
         console.log(">>>> Executed seeds success")
     }
 
     @Option({
-        flags: '-s, --schema [string]',
+        flags: '-t, --tenant [string]',
         description: 'The tenant name to execute migrations'
     })
     parseString(val: string): string {

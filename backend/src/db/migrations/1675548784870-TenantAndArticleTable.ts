@@ -14,9 +14,14 @@ export class TenantAndArticleTable1675548784870 implements MigrationInterface {
             default: 'uuid_generate_v4()',
           },
           {
-            name: 'domain',
+            name: 'name',
             type: 'varchar',
             isNullable: false,
+          },
+          {
+            name: 'host',
+            type: 'varchar',
+            isNullable: true,
           },
         ],
       }),
