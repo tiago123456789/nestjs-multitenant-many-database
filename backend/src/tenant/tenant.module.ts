@@ -1,4 +1,4 @@
-import { CacheModule, MiddlewareConsumer, Module, NestModule, Scope } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, Scope } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TenantController } from './tenant.controller';
 import { TenantService } from './tenant.service';
@@ -13,10 +13,6 @@ import { ExecuteSeedCommand } from './commands/execute-seeds.command';
 import { ExecuteMigrationsAllTenantsCommand } from './commands/execute-migrations-all-tenants.command';
 import { TenantMiddleware } from "./tenant.middleware"
 import { getConnection } from 'typeorm'
-
-const cacheConfig = {
-  store: 'memory',
-}
 
 const tenantConfigProvider = {
   provide: CONNECTION,
@@ -34,7 +30,6 @@ const tenantConfigProvider = {
 @Module({
   imports: [
     TypeOrmModule.forFeature([Tenant]),
-    CacheModule.register(cacheConfig),
     JwtModule.registerAsync({
       useFactory(configService: ConfigService) {
         return {
@@ -54,7 +49,6 @@ const tenantConfigProvider = {
   ],
   exports: [
     TenantService,
-    CacheModule.register(cacheConfig),
     tenantConfigProvider
   ],
 })
