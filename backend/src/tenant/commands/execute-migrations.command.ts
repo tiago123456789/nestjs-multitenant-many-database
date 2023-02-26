@@ -2,14 +2,14 @@ import { InjectRepository } from "@nestjs/typeorm"
 import { CommandRunner, Command, Option } from "nest-commander"
 import { Connection, Repository } from "typeorm"
 import { Tenant } from "../tenant.entity"
-import { getTenantConnection, getTenantName } from "../tenant.utils"
+import { getTenantConnection } from "../tenant.utils"
+import { actionsByMigrationAction, isValidMigrationAction, messagesByMigratonAction } from "./migration-command.utils"
+import { TenantMigrationsCommandOptions } from "./types/tenant-migrations-command-options"
 
-interface TenantMigrationsCommandOptions {
-    tenant: string;
-}
 
 @Command({ name: 'tenant-migrations', description: 'Execute migrations to the tenant' })
 export class ExecuteMigrationsCommand implements CommandRunner {
+
 
     constructor(
         @InjectRepository(Tenant) private repository: Repository<Tenant>,
@@ -20,27 +20,34 @@ export class ExecuteMigrationsCommand implements CommandRunner {
         passedParam: string[],
         options: TenantMigrationsCommandOptions
     ): Promise<void> {
-        const tenant = await this.repository.findOne({ 
+        isValidMigrationAction(options.type)
+
+        const tenant: Tenant = await this.repository.findOne({
             where: {
-                name: getTenantName(options.tenant)
+                name: options.tenant
             }
         })
-
-        if (!tenant) {
-            throw new Error("Tenant not exist")
-        }
-
-        console.log(`>>>> Executing migrations to the tenant ${options.tenant}`)
+        const message = messagesByMigratonAction[options.type](options.tenant)
+        console.log(message.START_MESSAGE)
         const connection: Connection = await getTenantConnection(tenant)
-        await connection.runMigrations()
-        console.log(`>>>> Executed migrations success`)
+        await actionsByMigrationAction[options.type](connection)
+        await connection.close()
+        console.log(message.END_MESSAGE)
     }
 
     @Option({
-        flags: '-t, --tenant [string]',
+        flags: '--tenant [string]',
         description: 'The tenant name to execute migrations'
     })
-    parseString(val: string): string {
+    parseSchema(val: string): string {
+        return val;
+    }
+
+    @Option({
+        flags: '--type [string]',
+        description: 'The type to run migrations or rollback migrations'
+    })
+    parseType(val: string): string {
         return val;
     }
 

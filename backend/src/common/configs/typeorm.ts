@@ -11,14 +11,14 @@ const typeormConfig = (isLoadSeedersConfig: boolean = false) => {
         autoLoadEntities: true,
         synchronize: true,
         logging: process.env.ENV == 'dev' ? true : false,
-        entities: [join(__dirname, '..', '..', './**/*.entity{.ts,.js}')],
+        entities: [join(__dirname, '..', '..', './**/*.entity.js')],
     }
 
     if (!isLoadSeedersConfig) {
-        config.migrations = [join(__dirname,  '..', '..', './db/migrations/*{.ts,.js}')]
+        config.migrations = [join(__dirname, '..', '..', './db/migrations/*.js')]
     } else {
         config.migrationsTableName = 'seeders';
-        config.migrations = [join(__dirname,  '..', '..', './db/seeds/*{.ts,.js}')]
+        config.migrations = [join(__dirname,  '..', '..', './db/seeds/*.js')]
     }
 
     return config;

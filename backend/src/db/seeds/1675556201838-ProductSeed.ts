@@ -1,3 +1,4 @@
+import { query } from 'express';
 import { Product } from 'src/product/product.entity';
 import { Tenant } from 'src/tenant/tenant.entity';
 import { MigrationInterface, QueryRunner } from 'typeorm';

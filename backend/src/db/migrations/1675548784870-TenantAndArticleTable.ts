@@ -11,7 +11,6 @@ export class TenantAndArticleTable1675548784870 implements MigrationInterface {
             type: 'uuid',
             isPrimary: true,
             generationStrategy: 'uuid',
-            default: 'uuid_generate_v4()',
           },
           {
             name: 'name',
@@ -37,7 +36,6 @@ export class TenantAndArticleTable1675548784870 implements MigrationInterface {
             type: 'uuid',
             isPrimary: true,
             generationStrategy: 'uuid',
-            default: 'uuid_generate_v4()',
           },
           {
             name: 'name',
@@ -67,7 +65,7 @@ export class TenantAndArticleTable1675548784870 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    queryRunner.query(`DROP IF EXISTS TABLE products`);
-    queryRunner.query(`DROP IF EXISTS TABLE tenants`);
+    queryRunner.query(`DROP TABLE IF EXISTS products`);
+    queryRunner.query(`DROP TABLE IF EXISTS tenants`);
   }
 }

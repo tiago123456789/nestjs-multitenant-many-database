@@ -1,7 +1,9 @@
-import { CommandRunner, Command } from "nest-commander"
-import { Repository } from "typeorm"
-import { InjectRepository } from '@nestjs/typeorm';
+import { CommandRunner, Command, Option } from "nest-commander"
+import { Connection, Repository } from "typeorm"
+import {  InjectRepository } from '@nestjs/typeorm';
 import { getTenantConnection } from "../tenant.utils";
+import { TenantAllMigrationsCommandOptions } from "./types/tenant-all-migrations-command-options.interface"
+import { actionsByMigrationAction, isValidMigrationAction, messagesByMigratonAction } from "./migration-command.utils";
 import { Tenant } from "../tenant.entity";
 
 @Command({ name: 'tenant-all-migrations', description: 'Execute migrations to all tenants' })
@@ -14,19 +16,27 @@ export class ExecuteMigrationsAllTenantsCommand implements CommandRunner {
 
     async run(
         passedParam: string[],
+        options: TenantAllMigrationsCommandOptions
     ): Promise<void> {
-        try {
-            let tenants = await this.repository.find({ where: {} })
-            tenants = tenants.filter(item => item.getHost() != null)
-            for (let index = 0; index < tenants.length; index += 1) {
-                const connectionCreated = await getTenantConnection(tenants[index])
-                await connectionCreated.runMigrations()
-                await connectionCreated.close()
-                console.log(`>>>> Executed migrations success to the tenant ${connectionCreated.name}`)
-            }
-        } catch (error) {
-            console.log(error);
+        isValidMigrationAction(options.type)
+        let tenants: Array<Tenant> = await this.repository.find({ where: {} })
+
+        for (let index = 0; index < tenants.length; index++) {
+            const message = messagesByMigratonAction[options.type](tenants[index].getName())
+            console.log(message.START_MESSAGE)
+            const connection: Connection = await getTenantConnection(tenants[index])
+            await actionsByMigrationAction[options.type](connection)
+            await connection.close()
+            console.log(message.END_MESSAGE)
         }
+    }
+
+    @Option({
+        flags: '-t, --type [string]',
+        description: 'The action to execute. You can set RUN to run migrations and DOWN undo the last migration'
+    })
+    parseType(val: string): string {
+        return val
     }
 
 }
